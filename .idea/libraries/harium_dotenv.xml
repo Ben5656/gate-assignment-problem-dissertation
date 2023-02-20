@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="harium.dotenv" type="repository">
+    <properties maven-id="com.harium:dotenv:1.0.8" />
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/harium/dotenv/1.0.8/dotenv-1.0.8.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
