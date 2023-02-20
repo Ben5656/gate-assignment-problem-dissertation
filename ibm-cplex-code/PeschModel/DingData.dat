@@ -1,0 +1,12 @@
+/*********************************************
+ * Generated Data File
+ * Author: Ben
+ * Generation Date: Nov 22, 2022 at 12:24:12 PM
+ *********************************************/
+
+// Arrival time/departure time given in seconds after midnight
+
+F = {<1, 32400, 36000>, <2, 34200, 37800>, <3, 36000, 39600>};
+// Flight 1 - Arrives: 9am Departs: 10am
+// Flight 2 - Arrives: 9:30am Departs: 10:30am
+// Flight 3 - Arrives: 10am Departs: 11am

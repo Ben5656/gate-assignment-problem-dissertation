@@ -1,0 +1,23 @@
+/*********************************************
+ * OPL 22.1.0.0 Data
+ * Author: ben
+ * Creation Date: Jan 10, 2023 at 11:03:15 AM
+ *********************************************/
+// Times given in seconds after midnight, or total seconds in case of durations
+
+F = {<1, 32400, 36000, 3600, 1200>, <2, 34200, 37800, 3600, 1200>, <3, 36000, 39600, 3600, 1200>};
+// Flight 1:
+//			- Arrives: 9am 
+//			- Departs: 10am
+//			- OnGate: 1hr
+//			- OffGate: 20min
+// Flight 2:
+//			- Arrives: 9:30am 
+//			- Departs: 10:30am
+//			- OnGate: 1hr
+//			- OffGate: 20min
+// Flight 3:
+//			- Arrives: 10am 
+//			- Departs: 11am
+//			- OnGate: 1hr
+//			- OffGate: 20min
