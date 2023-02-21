@@ -14,5 +14,6 @@
     <orderEntry type="library" name="google.code.gson" level="project" />
     <orderEntry type="library" name="fasterxml.jackson.module.kotlin" level="project" />
     <orderEntry type="library" name="harium.dotenv" level="project" />
+    <orderEntry type="library" name="squareup.okhttp3.okhttp" level="project" />
   </component>
 </module>

@@ -103,6 +103,7 @@ data class Geo(
     val continent: String?,
     val country: String?,
     val country_code: String?,
+    val city: String?,
     val lat: Double?,
     val lng: Double?,
     val timezone: String?
