@@ -4,6 +4,9 @@ import com.harium.dotenv.Env
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
+import java.io.FileOutputStream
+import java.time.LocalDateTime
 
 fun main(args: Array<String>) {
     /**
@@ -18,7 +21,7 @@ fun main(args: Array<String>) {
      * Terminal = "" for all
      */
 
-    generateData("EGJB", "")
+    generateData("EGCC", "")
 }
 
 private fun generateData(airportICAO: String, terminal: String) {
@@ -58,8 +61,9 @@ private fun generateData(airportICAO: String, terminal: String) {
     else println("\nTerminal $terminal has ${flightsArray.size} scheduled arriving/departing flights\n")
 
     //println("Generated pastebin with times: ${pasteBinAPICall(pasteStringGenerator(airportICAO, flightsArray))}")
-    println("Generated text: ${pasteStringGenerator(airportICAO, flightsArray)}")
+    println(pasteStringGenerator(airportICAO, flightsArray))
     println("More data available here: https://uk.flightaware.com/live/airport/$airportICAO")
+    generateDATFile(airportICAO, flightsArray)
 }
 
 private fun flightAPICall(airportICAO: String): String {
@@ -79,7 +83,40 @@ private fun pasteStringGenerator(airportICAO: String, flightsArray: List<Respons
     flightsArray.forEach {
         dataString += "<${it.flight_icao}, ${it.arr_time_ts}, ${it.dep_time_ts}>, "
     }
-    return dataString.dropLast(2) + "}"
+
+    return (dataString.dropLast(2) + "}")
+}
+
+private fun generateDATFile(airportICAO: String, flightsArray: List<Response>) {
+    val flightsArray = flightsArray.take(100)
+    val file = File("/Users/ben/opl/DingModel/DingData.dat")
+
+
+    var arrivalTimes = "\nARRIVAL_TIMES = ["
+    flightsArray.forEach {
+        arrivalTimes += "${it.arr_time_ts}, "
+    }
+
+
+
+    var depTimes = "\nDEPART_TIMES = ["
+    flightsArray.forEach {
+        depTimes += "${it.dep_time_ts}, "
+    }
+
+    file.writeText("/*********************************************\n" +
+            " * Author: Ben\n" +
+            " * Generation Date: ${LocalDateTime.now()}\n" +
+            " *********************************************/    \n" +
+            "\n" +
+            "// Representative of: $airportICAO\n" +
+            "\n" +
+            "NF = ${flightsArray.size};\n" +
+            "NG = 6;\n" +
+            "\n" +
+            "// Times given in seconds after midnight\n" +
+            "${arrivalTimes.dropLast(2)}];\n" +
+            "${depTimes.dropLast(2)}];")
 }
 
 private fun pasteBinAPICall(textToPaste: String): String {
