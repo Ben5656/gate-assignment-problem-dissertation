@@ -5,7 +5,6 @@ import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.io.FileOutputStream
 import java.time.LocalDateTime
 
 fun main(args: Array<String>) {
@@ -21,7 +20,7 @@ fun main(args: Array<String>) {
      * Terminal = "" for all
      */
 
-    generateData("EGCC", "")
+    generateData("EGLL", "5")
 }
 
 private fun generateData(airportICAO: String, terminal: String) {
@@ -29,36 +28,35 @@ private fun generateData(airportICAO: String, terminal: String) {
 
     val flightsArray = toFlightObj.response!!.filter {
         if (terminal.isEmpty()) {
-            it.status != "cancelled" && it.dep_time_ts!! > (System.currentTimeMillis() / 1000)
+            it.status != "cancelled" && it.arr_time_ts!! > (System.currentTimeMillis() / 1000) && it.arr_icao == airportICAO
         } else {
-            (it.arr_terminal == terminal || it.dep_terminal == terminal) &&
+            (it.arr_terminal == terminal) &&
                     it.status != "cancelled" &&
-                    it.dep_time_ts!! > (System.currentTimeMillis() / 1000)
+                    it.arr_time_ts!! > (System.currentTimeMillis() / 1000) && it.arr_icao == airportICAO
         }
     }
+    flightsArray.forEach {
+        it.turnaround = (30..120).random()
+        it.turnaround_ts = it.arr_time_ts!! + (it.turnaround!! * 60)
+    }
     System.out.printf(
-        "| %-10s | %-7s | %-9s | %-8s | %-8s | %-3s | %-3s | %-8s | %-8s | %-7s | %-7s |\n",
-        "Flight Num", "Airline", "Status", "Terminal", "Aircraft", "Dep", "Arr", "Dep Time", "Arr Time", "Dep Est", "Arr Est"
+        "| %-10s | %-7s | %-9s | %-8s | %-8s | %-3s | %-3s | %-8s | %-10s |\n",
+        "Flight Num", "Airline", "Status", "Terminal", "Aircraft", "Dep", "Arr", "Arr Time", "Turnaround"
     )
     flightsArray.map {
         System.out.printf(
-            "| %-10s | %-7s | %-9s | %-8s | %-8s | %-3s | %-3s | %-8s | %-8s | %-7s | %-7s |\n",
+            "| %-10s | %-7s | %-9s | %-8s | %-8s | %-3s | %-3s | %-8s | %-10s |\n",
             it.flight_icao ?: "-",
             it.airline_iata ?: "-",
             it.status ?: "-",
-            it.dep_terminal ?: "-",
+            it.arr_terminal ?: "-",
             it.aircraft_icao ?: "-",
             it.dep_iata ?: "-",
             it.arr_iata ?: "-",
-            it.dep_time?.takeLast(5) ?: "-",
             it.arr_time?.takeLast(5) ?: "-",
-            it.dep_estimated?.takeLast(5) ?: "-",
-            it.arr_estimated?.takeLast(5) ?: "-"
+            "${it.turnaround} mins"
         )
     }
-
-    if (terminal.isEmpty()) println("\nThe airport $airportICAO has ${flightsArray.size} scheduled arriving/departing flights:\n")
-    else println("\nTerminal $terminal has ${flightsArray.size} scheduled arriving/departing flights\n")
 
     //println("Generated pastebin with times: ${pasteBinAPICall(pasteStringGenerator(airportICAO, flightsArray))}")
     println(pasteStringGenerator(airportICAO, flightsArray))
@@ -70,7 +68,7 @@ private fun flightAPICall(airportICAO: String): String {
     val request = Request.Builder()
         .url(
             "https://airlabs.co/api/v9/schedules" +
-                    "?dep_icao=$airportICAO" +
+                    "?arr_icao=$airportICAO" +
                     "&api_key=${Env.get("FLIGHTS_API_KEY")}")
         .get()
         .build()
@@ -79,17 +77,17 @@ private fun flightAPICall(airportICAO: String): String {
 }
 
 private fun pasteStringGenerator(airportICAO: String, flightsArray: List<Response>): String {
-    var dataString = "Airport: $airportICAO, which has ${flightsArray.size} flights arriving/departing.\n\nflights={"
+    var dataString = "Airport: $airportICAO, which has ${flightsArray.size} flights arriving.\n\nflights={"
     flightsArray.forEach {
-        dataString += "<${it.flight_icao}, ${it.arr_time_ts}, ${it.dep_time_ts}>, "
+        dataString += "<${it.flight_icao}, ${it.arr_time_ts}, ${it.turnaround_ts}>, "
     }
 
     return (dataString.dropLast(2) + "}")
 }
 
 private fun generateDATFile(airportICAO: String, flightsArray: List<Response>) {
-    val flightsArray = flightsArray.take(100)
-    val file = File("/Users/ben/opl/DingModel/DingData.dat")
+    val flightsArray = flightsArray.take(15)
+    val file = File("C:\\Users\\benrf\\opl\\DingModel\\DataRevised.dat")
 
 
     var arrivalTimes = "\nARRIVAL_TIMES = ["
@@ -97,11 +95,9 @@ private fun generateDATFile(airportICAO: String, flightsArray: List<Response>) {
         arrivalTimes += "${it.arr_time_ts}, "
     }
 
-
-
     var depTimes = "\nDEPART_TIMES = ["
     flightsArray.forEach {
-        depTimes += "${it.dep_time_ts}, "
+        depTimes += "${(it.turnaround_ts)}, "
     }
 
     file.writeText("/*********************************************\n" +
@@ -112,10 +108,10 @@ private fun generateDATFile(airportICAO: String, flightsArray: List<Response>) {
             "// Representative of: $airportICAO\n" +
             "\n" +
             "NF = ${flightsArray.size};\n" +
-            "NG = 6;\n" +
+            "NG = 10;\n" +
             "\n" +
-            "// Times given in seconds after midnight\n" +
-            "${arrivalTimes.dropLast(2)}];\n" +
+            "// Times given in seconds after midnight\n\n// Time the plane will arrive" +
+            "${arrivalTimes.dropLast(2)}];\n\n// Time after turnaround the plane needs to leave." +
             "${depTimes.dropLast(2)}];")
 }
 

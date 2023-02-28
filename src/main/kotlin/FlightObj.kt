@@ -60,7 +60,9 @@ data class Response(
     val flight_iata: String?,
     val flight_icao: String?,
     val flight_number: String?,
-    val status: String?
+    val status: String?,
+    var turnaround: Int?,
+    var turnaround_ts: Int?
 )
 
 data class Client(
@@ -86,6 +88,7 @@ data class Key(
 
 data class Params(
     val dep_icao: String?,
+    val arr_icao: String?,
     val lang: String?
 )
 
