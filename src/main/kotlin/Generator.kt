@@ -20,7 +20,7 @@ fun main(args: Array<String>) {
      * Terminal = "" for all
      */
 
-    generateData("EGLL", "5")
+    generateData("EGCC", "")
 }
 
 private fun generateData(airportICAO: String, terminal: String) {
@@ -66,10 +66,7 @@ private fun generateData(airportICAO: String, terminal: String) {
 
 private fun flightAPICall(airportICAO: String): String {
     val request = Request.Builder()
-        .url(
-            "https://airlabs.co/api/v9/schedules" +
-                    "?arr_icao=$airportICAO" +
-                    "&api_key=${Env.get("FLIGHTS_API_KEY")}")
+        .url("https://airlabs.co/api/v9/schedules?arr_icao=$airportICAO&api_key=${Env.get("FLIGHTS_API_KEY")}")
         .get()
         .build()
 
@@ -85,8 +82,8 @@ private fun pasteStringGenerator(airportICAO: String, flightsArray: List<Respons
     return (dataString.dropLast(2) + "}")
 }
 
-private fun generateDATFile(airportICAO: String, flightsArray: List<Response>) {
-    val flightsArray = flightsArray.take(15)
+private fun generateDATFile(airportICAO: String, incomingArray: List<Response>) {
+    val flightsArray = incomingArray.shuffled().take(10)
     val file = File("C:\\Users\\benrf\\opl\\DingModel\\DataRevised.dat")
 
 
@@ -108,11 +105,20 @@ private fun generateDATFile(airportICAO: String, flightsArray: List<Response>) {
             "// Representative of: $airportICAO\n" +
             "\n" +
             "NF = ${flightsArray.size};\n" +
-            "NG = 10;\n" +
+            "NG = 5;\n" +
+            "NV = 3;\n" +
             "\n" +
             "// Times given in seconds after midnight\n\n// Time the plane will arrive" +
             "${arrivalTimes.dropLast(2)}];\n\n// Time after turnaround the plane needs to leave." +
-            "${depTimes.dropLast(2)}];")
+            "${depTimes.dropLast(2)}];\n\n// Two vehicles - integers are minutes they need to do a task.\n" +
+            "VEHICLES = [1, 1, 1];\n" +
+            "\n" +
+            "// Distance of gates, assuming that they're all in a line for this.\n" +
+            "GATE_DISTANCE = [[0, 5, 10, 15, 20],\n" +
+            "\t\t\t\t [5, 0, 5, 10, 15],\n" +
+            "\t\t\t\t [10, 5, 0, 5, 10],\n" +
+            "\t\t\t\t [15, 10, 5, 0, 5],\n" +
+            "\t\t\t\t [20, 15, 10, 5, 0]];")
 }
 
 private fun pasteBinAPICall(textToPaste: String): String {
