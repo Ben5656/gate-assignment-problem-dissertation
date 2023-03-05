@@ -1,97 +1,81 @@
 /*********************************************
-		* OPL 22.1.0.0 Model
-		* Author: Ben
-		* Creation Date: Dec 15, 2022 at 12:24:12 PM
-		*********************************************/
+* OPL 22.1.0.0 Model
+* Author: Ben
+* Creation Date: Mar 3, 2023 at 10:45:12 AM
+*********************************************/
 
-		execute {
-		//cplex.tilim = 5*60;   // set time model stop (second)
-		cplex.symmetry = 5;
-		cplex.threads=1;
-		cplex.NodeFileInd = 3;
-		}
+execute {
+    //cplex.tilim = 5*60;   // set time model stop (second)
+    cplex.symmetry = 5;
+    cplex.NodeFileInd = 3;
+}
 
-		int NF = ...;
-		int NG = ...;
-		int NV = ...;
-		range F = 1..NF;
-		range G = 1..NG;
-		range V = 1..NV;
+// Variables for initialising arrays with ints and ranges
+int NF = ...;
+int NG = ...;
+range F = 1..NF;
+range G = 1..NG;
 
-		// Decision variable assignment, 1 if f_i allocated to g_k, 0 otherwise
-		dvar int assignment[F,G] in 0..1;
-		// Indicator variable y, 1 if f_i and f_j allocated to g_k, 0 otherwise
-		dvar int y[F,F] in 0..1;
+// Decision variable assignment, 1 if f_i allocated to g_k, 0 otherwise
+dvar int assignment[F,G] in 0..1;
+// Indicator variable y, 1 if f_i and f_j allocated to g_k, 0 otherwise
+dvar int y[F,F] in 0..1;
+// Indicator variable, set to the time equation in constraint
+dvar int vehiclePenalty;
 
+// Two arrays holding the arrival and turnaround departure epochs
+float ARRIVAL_TIMES[F] = ...;
+float DEPART_TIMES[F] = ...;
 
-		// Decision variable vehicle, 1 if f_i allocated to V_v, 0 otherwise
-		dvar int vehicle[F,V] in 0..1;
-		// Indicator variable x, 1 if f_i and f_j allocated to V_v, 0 otherwise
-		dvar int x[F,F] in 0..1;
+// Array holding the gate distance between two gates in seconds
+int GATE_DISTANCE[G,G] = ...;
 
-		float ARRIVAL_TIMES[F] = ...;
-		float DEPART_TIMES[F] = ...;
+// Hard coded integer holding a slack for assigning vehicle teams
+int slackTime = ...;
+int serviceTime = ...;
 
-		int VEHICLES[V] = ...;
-		int GATE_DISTANCE[G,G] = ...;
+// Objective function to minimize the number of gate conflicts, dependent
+// on gate assignment and scheduled time
+minimize
+sum (i in F, j in F : DEPART_TIMES[j] - ARRIVAL_TIMES[i] > 0) (
+    y[i,j] / (DEPART_TIMES[j] - ARRIVAL_TIMES[i])
+) + vehiclePenalty;
 
-		// Objective function to minimize the number of gate conflicts, dependent
-		// on gate assignment and scheduled time
-		minimize
-		sum (i in F, j in F : DEPART_TIMES[j] - ARRIVAL_TIMES[i] > 0) (
-		y[i,j] / (DEPART_TIMES[j] - ARRIVAL_TIMES[i])
-		) + sum (i in F, j in F : DEPART_TIMES[j] - ARRIVAL_TIMES[i] > 0) (
-		x[i,j] / (DEPART_TIMES[j] - ARRIVAL_TIMES[i])
-		);
+constraints {
 
-		// Next obj needs to minimise GATE_DISTANCE
+    /* -- Gate constraints -- */
 
-		constraints {
+    // Compute variable y, shows 1 if both flights i and j are allocated to the same gate
+    forall(i in F, j in F : j<i, k in G) {
+        assignment[i,k]*assignment[j,k] <= y[i,j];
+    }
 
-		/* -- Gate constraints -- */
+    // Each flight is assigned to one and only one gate.
+    forall(i in F) {
+        sum(k in G) assignment[i,k] == 1;
+    }
 
-		// Compute variable y, shows 1 if both flights i and j are allocated to the same gate
-		forall(i in F, j in F : j<i, k in G) {
-		assignment[i,k]*assignment[j,k] <= y[i,j];
-		}
+    // Ensures one gate can only be assigned to one and only one flight at the same time
+    forall(i in F, j in F, k in G : j<i){
+        y[i,k]*y[j,k]*(DEPART_TIMES[i] - ARRIVAL_TIMES[j])*(DEPART_TIMES[j] - ARRIVAL_TIMES[i]) <= 0;
+    }
 
-		// Each flight is assigned to one and only one gate.
-		forall(i in F) {
-		sum(k in G) assignment[i,k] == 1;
-		}
+    /* -- Vehicle cosntraints -- */
 
-		// Ensures one gate can only be assigned to one and only one flight at the same time
-		forall(i in F, j in F, k in G : j<i){
-		y[i,k]*y[j,k]*(DEPART_TIMES[i] - ARRIVAL_TIMES[j])*(DEPART_TIMES[j] - ARRIVAL_TIMES[i]) <= 0;
-		}
+    // The arrival time of flight i, plus the travel and service time, should be greater than that of the next flight arrival.    
+    forall(i in F, j in F : i<j, k in G, l in G : k<l) {
+      (ARRIVAL_TIMES[i]-ARRIVAL_TIMES[j])+((assignment[i,k]*assignment[j,l])*GATE_DISTANCE[k,l]) + ((assignment[i,k]*assignment[j,l])*(serviceTime+slackTime)) <= vehiclePenalty;
+    }
+}
 
-		/* -- Vehicle cosntraints -- */
-
-		// Compute variable x, shows 1 if both flights i and j are allocated to the same vehicle
-		forall(i in F, j in F : j<i, v in V) {
-		vehicle[i,v]*vehicle[j,v] <= x[i,j];
-		}
-
-		// Each flight is assigned to one and only one vehicle
-		forall(i in F){
-		sum(v in V) vehicle[i,v] == 1;
-		}
-
-		// Ensures one vehicle can only be assigned to one and only one flight at the same time
-		forall(i in F, j in F, v in V : j<i){
-		x[i,v]*x[j,v]*(DEPART_TIMES[i] - ARRIVAL_TIMES[j])*(DEPART_TIMES[j] - ARRIVAL_TIMES[i]) <= 0;
-		}
-		}
-
-		execute {
-		var file = new IloOplOutputFile("solution.csv");
-		file.writeln("Gate Assignment:")
-		file.writeln(assignment);
-		file.writeln("\ny (Indicator of i and j assigned):")
-		file.writeln(y)
-		file.writeln("\nVehicle Assignment:")
-		file.writeln(vehicle);
-		file.writeln("\nx (Indicator of i and j assigned):")
-		file.writeln(x)
-		file.close();
-		}
+// Write solution to .csv
+execute {
+    var file = new IloOplOutputFile("solution.csv");
+    file.writeln("Gate Assignment:")
+    file.writeln(assignment);
+    file.writeln("\ny (Indicator of i and j assigned):")
+    file.writeln(y)
+    file.writeln("\nVehicle Penalty:")
+    file.writeln(vehiclePenalty)
+    file.close();
+}
